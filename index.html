@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proxy Regenerator — AdXtreme</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #f5c400;
+    --accent2: #ff6b35;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --success: #39ff14;
+    --card: #13131c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,196,0,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,196,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .logo-badge {
+    background: var(--accent);
+    color: #000;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 3px;
+    padding: 6px 12px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(22px, 4vw, 36px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #fff;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Input area */
+  .input-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+
+  .label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    padding: 14px 16px;
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  .parse-preview {
+    display: none;
+    margin-top: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 14px;
+    font-size: 11px;
+    line-height: 2;
+  }
+
+  .parse-preview.visible { display: block; }
+
+  .parse-preview .part { display: inline; }
+  .pk { color: var(--muted); }
+  .pv { color: var(--accent); font-weight: bold; }
+  .pz { color: var(--accent2); font-weight: bold; }
+  .ps { color: var(--success); font-weight: bold; }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 700;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover { background: #ffd700; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+  }
+
+  .btn-danger:hover { background: var(--accent2); color: #000; }
+
+  .count-badge {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .count-badge strong { color: var(--accent); }
+
+  /* Filter */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .filter-bar input {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .filter-bar input:focus { border-color: var(--accent); }
+  .filter-bar input::placeholder { color: var(--muted); }
+
+  /* Output */
+  .output-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .section-title span { color: var(--accent); }
+
+  .proxy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .proxy-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .proxy-item:hover {
+    border-left-color: var(--accent);
+    background: #161620;
+  }
+
+  .proxy-item.copied {
+    border-left-color: var(--success);
+    animation: flash 0.3s ease;
+  }
+
+  @keyframes flash {
+    0% { background: rgba(57,255,20,0.1); }
+    100% { background: var(--card); }
+  }
+
+  .flag { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
+
+  .country-name {
+    font-size: 11px;
+    color: var(--muted);
+    width: 160px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .code-tag {
+    font-size: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    padding: 2px 6px;
+    flex-shrink: 0;
+    letter-spacing: 1px;
+  }
+
+  .proxy-str {
+    font-size: 11px;
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.85;
+  }
+
+  .copy-hint {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .proxy-item:hover .copy-hint { opacity: 1; }
+  .proxy-item.copied .copy-hint { color: var(--success); opacity: 1; }
+
+  /* Copy all area */
+  .copy-all-area {
+    margin-top: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 20px;
+    display: none;
+  }
+
+  .copy-all-area.visible { display: block; }
+
+  .copy-all-area textarea {
+    min-height: 120px;
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+
+  /* Error */
+  .error-msg {
+    background: rgba(255,107,53,0.1);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    padding: 12px 16px;
+    font-size: 12px;
+    display: none;
+    margin-bottom: 16px;
+  }
+
+  .error-msg.visible { display: block; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 2px;
+  }
+
+  .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+
+  @media (max-width: 600px) {
+    .country-name { display: none; }
+    .proxy-str { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <div class="logo-badge">AdXtreme</div>
+        <h1>Proxy <span>Regenerator</span></h1>
+      </div>
+      <p class="subtitle">OwlProxy · Country Code Generator · 140+ Regions</p>
+    </div>
+  </header>
+
+  <div class="input-card">
+    <label class="label">Input Proxy Line</label>
+    <textarea id="proxyInput" placeholder="mjQpbYvijb60_custom_zone_AI_st__city_sid_03078247_time_5:2585189@change4.owlproxy.com:7778" rows="2"></textarea>
+    <div class="parse-preview" id="parsePreview"></div>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="controls">
+    <button class="btn btn-primary" onclick="generate()">⚡ Generate All Countries</button>
+    <button class="btn btn-secondary" onclick="copyAll()">📋 Copy All</button>
+    <button class="btn btn-secondary" onclick="downloadTxt()">💾 Download .txt</button>
+    <button class="btn btn-danger" onclick="clearAll()">✕ Clear</button>
+    <span class="count-badge" id="countBadge"></span>
+  </div>
+
+  <div class="filter-bar" id="filterBar" style="display:none">
+    <input type="text" id="filterInput" placeholder="Filter by country or code..." oninput="filterList()">
+  </div>
+
+  <div id="outputSection" style="display:none">
+    <div class="output-header">
+      <span class="section-title">Generated Proxies <span id="visibleCount"></span></span>
+    </div>
+    <div class="proxy-list" id="proxyList"></div>
+
+    <div class="copy-all-area" id="copyAllArea">
+      <label class="label">All Proxies (plain text)</label>
+      <textarea id="allProxiesText" readonly></textarea>
+      <button class="btn btn-secondary" onclick="copyTextarea()">📋 Copy to Clipboard</button>
+    </div>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="icon">🌐</div>
+    <div>Paste your proxy line above and hit Generate</div>
+  </div>
+
+</div>
+
+<script>
+const COUNTRIES = [
+  { name: "United Arab Emirates", code: "AE", flag: "🇦🇪" },
+  { name: "Antigua and Barbuda",  code: "AG", flag: "🇦🇬" },
+  { name: "Anguilla",             code: "AI", flag: "🇦🇮" },
+  { name: "Albania",              code: "AL", flag: "🇦🇱" },
+  { name: "Armenia",              code: "AM", flag: "🇦🇲" },
+  { name: "Angola",               code: "AO", flag: "🇦🇴" },
+  { name: "Argentina",            code: "AR", flag: "🇦🇷" },
+  { name: "Austria",              code: "AT", flag: "🇦🇹" },
+  { name: "Australia",            code: "AU", flag: "🇦🇺" },
+  { name: "Azerbaijan",           code: "AZ", flag: "🇦🇿" },
+  { name: "Bosnia and Herzegovina", code: "BA", flag: "🇧🇦" },
+  { name: "Barbados",             code: "BB", flag: "🇧🇧" },
+  { name: "Bangladesh",           code: "BD", flag: "🇧🇩" },
+  { name: "Belgium",              code: "BE", flag: "🇧🇪" },
+  { name: "Burkina Faso",         code: "BF", flag: "🇧🇫" },
+  { name: "Bulgaria",             code: "BG", flag: "🇧🇬" },
+  { name: "Bahrain",              code: "BH", flag: "🇧🇭" },
+  { name: "Bermuda",              code: "BM", flag: "🇧🇲" },
+  { name: "Brunei",               code: "BN", flag: "🇧🇳" },
+  { name: "Bolivia",              code: "BO", flag: "🇧🇴" },
+  { name: "Brazil",               code: "BR", flag: "🇧🇷" },
+  { name: "Bahamas",              code: "BS", flag: "🇧🇸" },
+  { name: "Botswana",             code: "BW", flag: "🇧🇼" },
+  { name: "Belarus",              code: "BY", flag: "🇧🇾" },
+  { name: "Belize",               code: "BZ", flag: "🇧🇿" },
+  { name: "Canada",               code: "CA", flag: "🇨🇦" },
+  { name: "Republic of the Congo",code: "CG", flag: "🇨🇬" },
+  { name: "Switzerland",          code: "CH", flag: "🇨🇭" },
+  { name: "Côte d'Ivoire",        code: "CI", flag: "🇨🇮" },
+  { name: "Chile",                code: "CL", flag: "🇨🇱" },
+  { name: "Colombia",             code: "CO", flag: "🇨🇴" },
+  { name: "Costa Rica",           code: "CR", flag: "🇨🇷" },
+  { name: "Cuba",                 code: "CU", flag: "🇨🇺" },
+  { name: "Curaçao",              code: "CW", flag: "🇨🇼" },
+  { name: "Cyprus",               code: "CY", flag: "🇨🇾" },
+  { name: "Czech Republic",       code: "CZ", flag: "🇨🇿" },
+  { name: "Germany",              code: "DE", flag: "🇩🇪" },
+  { name: "Denmark",              code: "DK", flag: "🇩🇰" },
+  { name: "Dominica",             code: "DM", flag: "🇩🇲" },
+  { name: "Dominican Republic",   code: "DO", flag: "🇩🇴" },
+  { name: "Algeria",              code: "DZ", flag: "🇩🇿" },
+  { name: "Ecuador",              code: "EC", flag: "🇪🇨" },
+  { name: "Egypt",                code: "EG", flag: "🇪🇬" },
+  { name: "Spain",                code: "ES", flag: "🇪🇸" },
+  { name: "Ethiopia",             code: "ET", flag: "🇪🇹" },
+  { name: "Finland",              code: "FI", flag: "🇫🇮" },
+  { name: "Fiji",                 code: "FJ", flag: "🇫🇯" },
+  { name: "France",               code: "FR", flag: "🇫🇷" },
+  { name: "Gabon",                code: "GA", flag: "🇬🇦" },
+  { name: "Grenada",              code: "GD", flag: "🇬🇩" },
+  { name: "Georgia",              code: "GE", flag: "🇬🇪" },
+  { name: "Ghana",                code: "GH", flag: "🇬🇭" },
+  { name: "Greece",               code: "GR", flag: "🇬🇷" },
+  { name: "Guatemala",            code: "GT", flag: "🇬🇹" },
+  { name: "Guyana",               code: "GY", flag: "🇬🇾" },
+  { name: "Hong Kong",            code: "HK", flag: "🇭🇰" },
+  { name: "Honduras",             code: "HN", flag: "🇭🇳" },
+  { name: "Croatia",              code: "HR", flag: "🇭🇷" },
+  { name: "Hungary",              code: "HU", flag: "🇭🇺" },
+  { name: "Indonesia",            code: "ID", flag: "🇮🇩" },
+  { name: "Ireland",              code: "IE", flag: "🇮🇪" },
+  { name: "Israel",               code: "IL", flag: "🇮🇱" },
+  { name: "Isle of Man",          code: "IM", flag: "🇮🇲" },
+  { name: "India",                code: "IN", flag: "🇮🇳" },
+  { name: "Iraq",                 code: "IQ", flag: "🇮🇶" },
+  { name: "Iran",                 code: "IR", flag: "🇮🇷" },
+  { name: "Iceland",              code: "IS", flag: "🇮🇸" },
+  { name: "Italy",                code: "IT", flag: "🇮🇹" },
+  { name: "Jersey",               code: "JE", flag: "🇯🇪" },
+  { name: "Jamaica",              code: "JM", flag: "🇯🇲" },
+  { name: "Jordan",               code: "JO", flag: "🇯🇴" },
+  { name: "Japan",                code: "JP", flag: "🇯🇵" },
+  { name: "Kenya",                code: "KE", flag: "🇰🇪" },
+  { name: "Kyrgyzstan",           code: "KG", flag: "🇰🇬" },
+  { name: "Cambodia",             code: "KH", flag: "🇰🇭" },
+  { name: "Saint Kitts and Nevis",code: "KN", flag: "🇰🇳" },
+  { name: "South Korea",          code: "KR", flag: "🇰🇷" },
+  { name: "Kuwait",               code: "KW", flag: "🇰🇼" },
+  { name: "Cayman Islands",       code: "KY", flag: "🇰🇾" },
+  { name: "Kazakhstan",           code: "KZ", flag: "🇰🇿" },
+  { name: "Lebanon",              code: "LB", flag: "🇱🇧" },
+  { name: "Saint Lucia",          code: "LC", flag: "🇱🇨" },
+  { name: "Sri Lanka",            code: "LK", flag: "🇱🇰" },
+  { name: "Lithuania",            code: "LT", flag: "🇱🇹" },
+  { name: "Luxembourg",           code: "LU", flag: "🇱🇺" },
+  { name: "Latvia",               code: "LV", flag: "🇱🇻" },
+  { name: "Libya",                code: "LY", flag: "🇱🇾" },
+  { name: "Morocco",              code: "MA", flag: "🇲🇦" },
+  { name: "Moldova",              code: "MD", flag: "🇲🇩" },
+  { name: "Montenegro",           code: "ME", flag: "🇲🇪" },
+  { name: "North Macedonia",      code: "MK", flag: "🇲🇰" },
+  { name: "Mali",                 code: "ML", flag: "🇲🇱" },
+  { name: "Myanmar",              code: "MM", flag: "🇲🇲" },
+  { name: "Mongolia",             code: "MN", flag: "🇲🇳" },
+  { name: "Malta",                code: "MT", flag: "🇲🇹" },
+  { name: "Mauritius",            code: "MU", flag: "🇲🇺" },
+  { name: "Maldives",             code: "MV", flag: "🇲🇻" },
+  { name: "Mexico",               code: "MX", flag: "🇲🇽" },
+  { name: "Malaysia",             code: "MY", flag: "🇲🇾" },
+  { name: "Mozambique",           code: "MZ", flag: "🇲🇿" },
+  { name: "Namibia",              code: "NA", flag: "🇳🇦" },
+  { name: "Nigeria",              code: "NG", flag: "🇳🇬" },
+  { name: "Nicaragua",            code: "NI", flag: "🇳🇮" },
+  { name: "Netherlands",          code: "NL", flag: "🇳🇱" },
+  { name: "Norway",               code: "NO", flag: "🇳🇴" },
+  { name: "Nepal",                code: "NP", flag: "🇳🇵" },
+  { name: "New Zealand",          code: "NZ", flag: "🇳🇿" },
+  { name: "Oman",                 code: "OM", flag: "🇴🇲" },
+  { name: "Panama",               code: "PA", flag: "🇵🇦" },
+  { name: "Peru",                 code: "PE", flag: "🇵🇪" },
+  { name: "Papua New Guinea",     code: "PG", flag: "🇵🇬" },
+  { name: "Philippines",          code: "PH", flag: "🇵🇭" },
+  { name: "Pakistan",             code: "PK", flag: "🇵🇰" },
+  { name: "Poland",               code: "PL", flag: "🇵🇱" },
+  { name: "Puerto Rico",          code: "PR", flag: "🇵🇷" },
+  { name: "Palestine",            code: "PS", flag: "🇵🇸" },
+  { name: "Portugal",             code: "PT", flag: "🇵🇹" },
+  { name: "Paraguay",             code: "PY", flag: "🇵🇾" },
+  { name: "Qatar",                code: "QA", flag: "🇶🇦" },
+  { name: "Réunion",              code: "RE", flag: "🇷🇪" },
+  { name: "Romania",              code: "RO", flag: "🇷🇴" },
+  { name: "Serbia",               code: "RS", flag: "🇷🇸" },
+  { name: "Russia",               code: "RU", flag: "🇷🇺" },
+  { name: "Rwanda",               code: "RW", flag: "🇷🇼" },
+  { name: "Saudi Arabia",         code: "SA", flag: "🇸🇦" },
+  { name: "Sweden",               code: "SE", flag: "🇸🇪" },
+  { name: "Slovenia",             code: "SI", flag: "🇸🇮" },
+  { name: "Slovakia",             code: "SK", flag: "🇸🇰" },
+  { name: "Senegal",              code: "SN", flag: "🇸🇳" },
+  { name: "Suriname",             code: "SR", flag: "🇸🇷" },
+  { name: "El Salvador",          code: "SV", flag: "🇸🇻" },
+  { name: "Sint Maarten",         code: "SX", flag: "🇸🇽" },
+  { name: "Syria",                code: "SY", flag: "🇸🇾" },
+  { name: "Turks and Caicos Islands", code: "TC", flag: "🇹🇨" },
+  { name: "Togo",                 code: "TG", flag: "🇹🇬" },
+  { name: "Thailand",             code: "TH", flag: "🇹🇭" },
+  { name: "Tajikistan",           code: "TJ", flag: "🇹🇯" },
+  { name: "Turkmenistan",         code: "TM", flag: "🇹🇲" },
+  { name: "Tunisia",              code: "TN", flag: "🇹🇳" },
+  { name: "Turkey",               code: "TR", flag: "🇹🇷" },
+  { name: "Trinidad and Tobago",  code: "TT", flag: "🇹🇹" },
+  { name: "Taiwan",               code: "TW", flag: "🇹🇼" },
+  { name: "Tanzania",             code: "TZ", flag: "🇹🇿" },
+  { name: "Ukraine",              code: "UA", flag: "🇺🇦" },
+  { name: "Uganda",               code: "UG", flag: "🇺🇬" },
+  { name: "United Kingdom",       code: "GB", flag: "🇬🇧" },
+  { name: "United States",        code: "US", flag: "🇺🇸" },
+  { name: "Uruguay",              code: "UY", flag: "🇺🇾" },
+  { name: "Uzbekistan",           code: "UZ", flag: "🇺🇿" },
+  { name: "Saint Vincent and the Grenadines", code: "VC", flag: "🇻🇨" },
+  { name: "Venezuela",            code: "VE", flag: "🇻🇪" },
+  { name: "British Virgin Islands", code: "VG", flag: "🇻🇬" },
+  { name: "U.S. Virgin Islands",  code: "VI", flag: "🇻🇮" },
+  { name: "Vietnam",              code: "VN", flag: "🇻🇳" },
+  { name: "Kosovo",               code: "XK", flag: "🇽🇰" },
+  { name: "South Africa",         code: "ZA", flag: "🇿🇦" },
+  { name: "Zambia",               code: "ZM", flag: "🇿🇲" },
+  { name: "Singapore",            code: "SG", flag: "🇸🇬" },
+];
+
+let generatedProxies = [];
+
+function randSid() {
+  return String(Math.floor(10000000 + Math.random() * 90000000));
+}
+
+function parseProxy(line) {
+  line = line.trim();
+  // Format: user:pass@host:port
+  // user format: PREFIX_custom_zone_XX_st__city_sid_YYYYYYYY_time_Z
+  const atIdx = line.lastIndexOf('@');
+  if (atIdx === -1) return null;
+
+  const userPass = line.substring(0, atIdx);
+  const hostPort = line.substring(atIdx + 1);
+
+  const colonIdx = userPass.indexOf(':');
+  if (colonIdx === -1) return null;
+
+  const user = userPass.substring(0, colonIdx);
+  const pass = userPass.substring(colonIdx + 1);
+
+  // Parse user: find _zone_ and _st_
+  const zoneMatch = user.match(/^(.+_custom_zone_)([A-Z]{2})(_st_.*_sid_)(\d+)(_time_.+)$/);
+  if (!zoneMatch) return null;
+
+  return {
+    prefix: zoneMatch[1],     // everything up to and including _zone_
+    zoneCode: zoneMatch[2],   // current 2-letter code
+    middle: zoneMatch[3],     // _st__city_sid_
+    sid: zoneMatch[4],         // 8-digit sid
+    suffix: zoneMatch[5],     // _time_5
+    pass,
+    hostPort
+  };
+}
+
+function buildProxy(parsed, countryCode) {
+  return `${parsed.prefix}${countryCode}${parsed.middle}${randSid()}${parsed.suffix}:${parsed.pass}@${parsed.hostPort}`;
+}
+
+// Live parse preview
+document.getElementById('proxyInput').addEventListener('input', function() {
+  const preview = document.getElementById('parsePreview');
+  const val = this.value.trim();
+  if (!val) { preview.classList.remove('visible'); return; }
+
+  const p = parseProxy(val);
+  if (!p) { preview.classList.remove('visible'); return; }
+
+  preview.innerHTML = `
+    <span class="pk">prefix: </span><span class="pv">${escHtml(p.prefix)}</span><br>
+    <span class="pk">zone: </span><span class="pz">${escHtml(p.zoneCode)}</span>
+    &nbsp;&nbsp;<span class="pk">sid: </span><span class="ps">${escHtml(p.sid)}</span>
+    &nbsp;&nbsp;<span class="pk">suffix: </span><span class="pv">${escHtml(p.suffix)}</span><br>
+    <span class="pk">pass: </span><span class="pv">${escHtml(p.pass)}</span>
+    &nbsp;&nbsp;<span class="pk">host: </span><span class="pv">${escHtml(p.hostPort)}</span>
+  `;
+  preview.classList.add('visible');
+});
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('visible');
+}
+
+function generate() {
+  hideError();
+  const input = document.getElementById('proxyInput').value.trim();
+  if (!input) { showError('Please paste a proxy line first.'); return; }
+
+  const parsed = parseProxy(input);
+  if (!parsed) {
+    showError('Could not parse proxy format. Expected: user_custom_zone_XX_st__city_sid_XXXXXXXX_time_Y:pass@host:port');
+    return;
+  }
+
+  generatedProxies = COUNTRIES.map(c => ({
+    ...c,
+    proxy: buildProxy(parsed, c.code)
+  }));
+
+  renderList(generatedProxies);
+  document.getElementById('outputSection').style.display = 'block';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('filterBar').style.display = 'flex';
+  document.getElementById('filterInput').value = '';
+  document.getElementById('countBadge').innerHTML = `<strong>${generatedProxies.length}</strong> proxies generated`;
+
+  updateAllProxiesText(generatedProxies);
+}
+
+function renderList(list) {
+  const container = document.getElementById('proxyList');
+  container.innerHTML = '';
+  list.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'proxy-item';
+    div.dataset.proxy = item.proxy;
+    div.innerHTML = `
+      <span class="flag">${item.flag}</span>
+      <span class="country-name">${escHtml(item.name)}</span>
+      <span class="code-tag">${item.code}</span>
+      <span class="proxy-str">${escHtml(item.proxy)}</span>
+      <span class="copy-hint">COPY</span>
+    `;
+    div.addEventListener('click', function() {
+      navigator.clipboard.writeText(this.dataset.proxy).then(() => {
+        this.classList.add('copied');
+        this.querySelector('.copy-hint').textContent = 'COPIED!';
+        setTimeout(() => {
+          this.classList.remove('copied');
+          this.querySelector('.copy-hint').textContent = 'COPY';
+        }, 1500);
+      });
+    });
+    container.appendChild(div);
+  });
+  document.getElementById('visibleCount').textContent = `(${list.length})`;
+}
+
+function filterList() {
+  const q = document.getElementById('filterInput').value.toLowerCase();
+  const filtered = generatedProxies.filter(c =>
+    c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+  );
+  renderList(filtered);
+  updateAllProxiesText(filtered);
+}
+
+function updateAllProxiesText(list) {
+  document.getElementById('allProxiesText').value = list.map(c => c.proxy).join('\n');
+}
+
+function copyAll() {
+  if (!generatedProxies.length) { showError('Generate proxies first.'); return; }
+  const q = document.getElementById('filterInput').value.toLowerCase();
+  const list = q
+    ? generatedProxies.filter(c => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
+    : generatedProxies;
+  const txt = list.map(c => c.proxy).join('\n');
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.querySelector('.btn-secondary');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied ' + list.length + ' proxies!';
+    btn.style.borderColor = 'var(--success)';
+    btn.style.color = 'var(--success)';
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }, 2000);
+  }).catch(() => {
+    // Fallback: show textarea
+    const area = document.getElementById('copyAllArea');
+    area.classList.add('visible');
+    const ta = document.getElementById('allProxiesText');
+    ta.select();
+  });
+}
+
+function copyTextarea() {
+  const ta = document.getElementById('allProxiesText');
+  ta.select();
+  navigator.clipboard.writeText(ta.value).then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy to Clipboard', 1500);
+  });
+}
+
+function downloadTxt() {
+  if (!generatedProxies.length) { showError('Generate proxies first.'); return; }
+  const txt = generatedProxies.map(c => c.proxy).join('\n');
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'proxies_all_countries.txt';
+  a.click();
+}
+
+function clearAll() {
+  document.getElementById('proxyInput').value = '';
+  document.getElementById('parsePreview').classList.remove('visible');
+  document.getElementById('outputSection').style.display = 'none';
+  document.getElementById('filterBar').style.display = 'none';
+  document.getElementById('emptyState').style.display = 'block';
+  document.getElementById('copyAllArea').classList.remove('visible');
+  document.getElementById('countBadge').innerHTML = '';
+  document.getElementById('proxyList').innerHTML = '';
+  generatedProxies = [];
+  hideError();
+}
+</script>
+</body>
+</html>
